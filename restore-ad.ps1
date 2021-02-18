@@ -52,7 +52,7 @@ if ($GroupsFilePath){
 
     #find and build ous.
     $ous = @()
-    $accounts | ForEach-Object {
+    $groups | ForEach-Object {
         $ou = ($PSItem.DistinguishedName).split(',')[1..99] -join ','
         $ous += $ou
         $PSitem.OuPath = $ou
