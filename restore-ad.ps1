@@ -29,15 +29,17 @@ if ($UsersFilePath) {
     #lets see if we can find an existing account and set it. If not create a new account with the incoming information.
     $accounts | ForEach-Object {
         
+        $account = $PSItem
+
         try {
-            $student = Get-Aduser $PSItem.ObjectGUID -ErrorAction SilentlyContinue
-            Set-AdUser -Identity $student -SamAccountName $PSItem.SamAccountName -givenName $PSItem.GivenName -surname $PSItem.Surname -DisplayName $PSItem.DisplayName -UserPrincipalName $PSItem.UserPrincipalName -Name $PSItem.Name -EmployeeNumber $PSItem.EmployeeNumber -EmployeeID $PSItem.EmployeeID
+            $student = Get-Aduser $account.ObjectGUID -ErrorAction SilentlyContinue
+            Set-AdUser -Identity $student -SamAccountName $account.SamAccountName -givenName $account.GivenName -surname $account.Surname -DisplayName $account.DisplayName -UserPrincipalName $account.UserPrincipalName -Name $account.Name -EmployeeNumber $account.EmployeeNumber -EmployeeID $account.EmployeeID
         } catch {
             try {
-                $student2 = Get-AdUser $PSItem.SamAccountName -ErrorAction SilentlyContinue
-                Set-AdUser -Identity $student2 -SamAccountName $PSItem.SamAccountName -givenName $PSItem.GivenName -surname $PSItem.Surname -DisplayName $PSItem.DisplayName -UserPrincipalName $PSItem.UserPrincipalName -Name $PSItem.Name -EmployeeNumber $PSItem.EmployeeNumber -EmployeeID $PSItem.EmployeeID
+                $student2 = Get-AdUser $account.SamAccountName -ErrorAction SilentlyContinue
+                Set-AdUser -Identity $student2 -SamAccountName $account.SamAccountName -givenName $account.GivenName -surname $account.Surname -DisplayName $account.DisplayName -UserPrincipalName $account.UserPrincipalName -Name $account.Name -EmployeeNumber $account.EmployeeNumber -EmployeeID $account.EmployeeID
             } catch {
-                New-AdUser -SamAccountName $PSItem.SamAccountName -givenName $PSItem.GivenName -surname $PSItem.Surname -DisplayName $PSItem.DisplayName -UserPrincipalName $PSItem.UserPrincipalName -EmailAddress $PSItem.EmailAddress -Name $PSItem.Name -EmployeeNumber $PSItem.EmployeeNumber -EmployeeID $PSItem.EmployeeID -Path $PSItem.OuPath -Enabled $True -AccountPassword (ConvertTo-SecureString 'Pioneer12345' -AsPlainText -Force)
+                New-AdUser -SamAccountName $account.SamAccountName -givenName $account.GivenName -surname $account.Surname -DisplayName $account.DisplayName -UserPrincipalName $account.UserPrincipalName -EmailAddress $account.EmailAddress -Name $account.Name -EmployeeNumber $account.EmployeeNumber -EmployeeID $account.EmployeeID -Path $account.OuPath -Enabled $True -AccountPassword (ConvertTo-SecureString 'Pioneer12345' -AsPlainText -Force)
             }
         }
 
@@ -91,7 +93,11 @@ if ($GroupsFilePath){
                 Get-ADGroup "$($groupName.Name)" | Set-ADObject -Replace @{ mail = "$($groupName.EmailAddress)" }
             }
             if (($members | measure-object).count -ge 1) {
-                Add-ADGroupMember -Identity "$($groupName.Name)" -Members $members
+                try {
+                    Add-ADGroupMember -Identity "$($groupName.Name)" -Members $members
+                } catch {
+                    $_
+                }
             }
         }
     }
