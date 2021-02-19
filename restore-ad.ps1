@@ -87,7 +87,9 @@ if ($GroupsFilePath){
             Add-ADGroupMember -Identity $group2 -Members $members
         } catch {
             New-AdGroup -Name "$($groupName.Name)" -GroupScope Universal
-            Get-ADGroup "$($groupName.Name)" | Set-ADObject -Replace @{ mail = "$($groupName.EmailAddress)" }
+            if (-Not($($groupName.EmailAddress) -eq '' -or $NULL -eq $($groupName.EmailAddress))) {
+                Get-ADGroup "$($groupName.Name)" | Set-ADObject -Replace @{ mail = "$($groupName.EmailAddress)" }
+            }
             if (($members | measure-object).count -ge 1) {
                 Add-ADGroupMember -Identity "$($groupName.Name)" -Members $members
             }
