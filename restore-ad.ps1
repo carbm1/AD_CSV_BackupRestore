@@ -86,7 +86,11 @@ if ($GroupsFilePath){
     } catch {
         try {
             $group2 = Get-ADGroup "$($groupName.Name)" -ErrorAction SilentlyContinue
-            Add-ADGroupMember -Identity $group2 -Members $members
+            try {
+                Add-ADGroupMember -Identity $group2 -Members $members
+            } catch {
+                $_
+            }
         } catch {
             New-AdGroup -Name "$($groupName.Name)" -GroupScope Universal
             if (-Not($($groupName.EmailAddress) -eq '' -or $NULL -eq $($groupName.EmailAddress))) {
