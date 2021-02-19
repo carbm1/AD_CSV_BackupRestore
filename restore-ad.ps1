@@ -72,24 +72,24 @@ if ($GroupsFilePath){
   #lets see if we can find existing group and set its membership. If not create a new account with the incoming information.
   $groups | ForEach-Object {
 
-    $group = $PSitem
+    $groupName = $PSitem
     #exclude computers
-    $members = (($PSItem.members).split(';') | Where-Object { $PSitem -notlike "*$" })
+    $members = (($groupName.members).split(';') | Where-Object { $groupName -notlike "*$" })
 
     try {
-        $group = Get-ADGroup $PSItem.ObjectGUID -ErrorAction SilentlyContinue
+        $group = Get-ADGroup $groupName.ObjectGUID -ErrorAction SilentlyContinue
         if (($members | measure-object).count -ge 1) {
             Add-ADGroupMember -Identity $group -Members $members
         }
     } catch {
         try {
-            $group2 = Get-ADGroup "$($group.Name)" -ErrorAction SilentlyContinue
+            $group2 = Get-ADGroup "$($groupName.Name)" -ErrorAction SilentlyContinue
             Add-ADGroupMember -Identity $group2 -Members $members
         } catch {
-            New-AdGroup -Name "$($group.Name)" -GroupScope Universal
-            Get-ADGroup "$($group.Name)" | Set-ADObject -Replace @{ mail = "$($group.EmailAddress)" }
+            New-AdGroup -Name "$($groupName.Name)" -GroupScope Universal
+            Get-ADGroup "$($groupName.Name)" | Set-ADObject -Replace @{ mail = "$($groupName.EmailAddress)" }
             if (($members | measure-object).count -ge 1) {
-                Add-ADGroupMember -Identity "$($group.Name)" -Members $members
+                Add-ADGroupMember -Identity "$($groupName.Name)" -Members $members
             }
         }
     }
