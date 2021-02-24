@@ -30,21 +30,33 @@ if ($UsersFilePath) {
     $accounts | ForEach-Object {
         
         $account = $PSItem
+        #$account
+        Write-Host $account.SamAccountName,$account.OuPath
+        #continue
 
         try {
             $student = Get-Aduser $account.ObjectGUID -ErrorAction SilentlyContinue
             Set-AdUser -Identity $student -SamAccountName $account.SamAccountName -givenName $account.GivenName -surname $account.Surname -DisplayName $account.DisplayName -UserPrincipalName $account.UserPrincipalName -Name $account.Name -EmployeeNumber $account.EmployeeNumber -EmployeeID $account.EmployeeID
+            try { Move-ADObject -Identity $student -TargetPath "$($account.OuPath)" } catch {}
         } catch {
             try {
-                $student2 = Get-AdUser $account.SamAccountName -ErrorAction SilentlyContinue
-                Set-AdUser -Identity $student2 -SamAccountName $account.SamAccountName -givenName $account.GivenName -surname $account.Surname -DisplayName $account.DisplayName -UserPrincipalName $account.UserPrincipalName -Name $account.Name -EmployeeNumber $account.EmployeeNumber -EmployeeID $account.EmployeeID
+                if ($account.EmployeeNumber -ge 1) {
+                    $student2 = Get-AdUser -Filter { EmployeeNumber -eq "$($account.EmployeeNumber)" }
+                } else {
+                    $student2 = Get-AdUser "$($account.SamAccountName)"
+                }
+                Set-AdUser -Identity $student2 -SamAccountName "$($account.SamAccountName)" -givenName "$($account.GivenName)" -surname "$($account.Surname)" -DisplayName "$($account.DisplayName)" -UserPrincipalName "$($account.UserPrincipalName)" -Name "$($account.Name)" -EmployeeNumber "$($account.EmployeeNumber)" -EmployeeID "$($account.EmployeeID)"
+                try { Move-ADObject -Identity $student2 -TargetPath "$($account.OuPath)" } catch {}
             } catch {
-                New-AdUser -SamAccountName $account.SamAccountName -givenName $account.GivenName -surname $account.Surname -DisplayName $account.DisplayName -UserPrincipalName $account.UserPrincipalName -EmailAddress $account.EmailAddress -Name $account.Name -EmployeeNumber $account.EmployeeNumber -EmployeeID $account.EmployeeID -Path $account.OuPath -Enabled $True -AccountPassword (ConvertTo-SecureString 'Pioneer12345' -AsPlainText -Force)
+                New-AdUser -SamAccountName "$($account.SamAccountName)" -givenName "$($account.GivenName)" -surname "$($account.Surname)" -DisplayName "$($account.DisplayName)" -UserPrincipalName "$($account.UserPrincipalName)" -EmailAddress "$($account.EmailAddress)" -Name "$($account.Name)" -EmployeeNumber "$($account.EmployeeNumber)" -EmployeeID "$($account.EmployeeID)" -Path "$($account.OuPath)" -Enabled $True -AccountPassword (ConvertTo-SecureString 'Pioneer12345' -AsPlainText -Force) -Verbose
+                $student3 = Get-AdUser $account.SamAccountName -ErrorAction SilentlyContinue
+                try { Move-ADObject -Identity $student3 -TargetPath "$($account.OuPath)" } catch {}
             }
         }
 
         $student = $null
         $student2 = $null
+        $student3 = $null
 
     }
 }
@@ -74,34 +86,42 @@ if ($GroupsFilePath){
   #lets see if we can find existing group and set its membership. If not create a new account with the incoming information.
   $groups | ForEach-Object {
 
+    #$groupName
     $groupName = $PSitem
+    $groupName
+    Write-Host $groupName.SamAccountName,$GroupName.OuPath
+    
     #exclude computers
-    $members = (($groupName.members).split(';') | Where-Object { $groupName -notlike "*$" })
+    $members = @()
+    $members += (($groupName.members).split(';') | Where-Object { $groupName -notlike "*$" })
 
     try {
         $group = Get-ADGroup $groupName.ObjectGUID -ErrorAction SilentlyContinue
         if (($members | measure-object).count -ge 1) {
-            Add-ADGroupMember -Identity $group -Members $members
+            try {
+                Add-ADGroupMember -Identity $group -Members $members
+            } catch {}
         }
     } catch {
         try {
             $group2 = Get-ADGroup "$($groupName.Name)" -ErrorAction SilentlyContinue
             try {
-                Add-ADGroupMember -Identity $group2 -Members $members
+                if (($members | measure-object).count -ge 1) {
+                    try {
+                        Add-ADGroupMember -Identity $group2 -Members $members
+                    } catch {}
+                }
+                try { Move-ADObject -Identity $group2 -TargetPath "$($groupName.OuPath)" } catch {}
             } catch {
-                $_
+                #$_
             }
         } catch {
-            New-AdGroup -Name "$($groupName.Name)" -GroupScope Universal
+            New-AdGroup -Name "$($groupName.Name)" -GroupScope Global -Path "$($groupName.OuPath)"
             if (-Not($($groupName.EmailAddress) -eq '' -or $NULL -eq $($groupName.EmailAddress))) {
                 Get-ADGroup "$($groupName.Name)" | Set-ADObject -Replace @{ mail = "$($groupName.EmailAddress)" }
             }
             if (($members | measure-object).count -ge 1) {
-                try {
-                    Add-ADGroupMember -Identity "$($groupName.Name)" -Members $members
-                } catch {
-                    $_
-                }
+                try { Add-ADGroupMember -Identity "$($groupName.Name)" -Members $members } catch { $_ }
             }
         }
     }
