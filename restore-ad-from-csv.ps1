@@ -15,14 +15,26 @@ if ($UsersFilePath) {
         $PSitem.OuPath = $ou
     }
 
-    $ous | Select-Object -Unique | Sort-Object { $_.value.length } | ForEach-Object {
+    $ous | Select-Object -Unique | Select-Object @{ Name = 'Name'; Expression = { $PSItem }},@{ Name = 'Length'; Expression = { $PSitem.length }} | Sort-Object -Property Length | Select-Object -ExpandProperty Name | ForEach-Object {
         try {
+            #$PSItem
             $ouname = $PSItem.split(',')[0] -replace 'OU=','' -replace 'CN=',''
             $oupath = $PSItem.split(',')[1..99] -join ','
-            $PSItem
-            New-ADOrganizationalUnit -Name $ouname -Path $oupath -ProtectedFromAccidentalDeletion $False
+            
+            if ($ous -notcontains $oupath) { 
+                $ou2name = $PSItem.split(',')[1] -replace 'OU=','' -replace 'CN=',''
+                $ou2path = $PSItem.split(',')[2..99] -join ','
+                Write-Host "Missing parent OU $ou2name at $ou2path"
+                try { New-ADOrganizationalUnit -Name $ou2name -Path $ou2path -ProtectedFromAccidentalDeletion $False -Verbose } catch {
+                    #PSitem
+                }
+                $ous += $ou2path
+            }
+
+            Write-Host "Creating $ouname at $oupath"
+            New-ADOrganizationalUnit -Name $ouname -Path $oupath -ProtectedFromAccidentalDeletion $False -Verbose
         } catch { 
-            #$_
+            #$PSitem
         }
     }
 
