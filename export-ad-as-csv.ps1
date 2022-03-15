@@ -3,7 +3,7 @@ if (-Not(Test-Path .\archives)) { New-Item -ItemType Directory -Path .\archives 
 $timestamp = get-date -Format yyyy-MM-dd-HH-mm-ss
 
 #Backup Users
-Get-ADUser -Filter * -Properties DisplayName,givenName,Surname,EmployeeNumber,EmployeeID,SamAccountName,UserPrincipalName,EmailAddress,DistinguishedName,Enabled,Fax,HomePhone,Office,ObjectGUID,objectSid | ConvertTo-Csv -UseQuotes AsNeeded -NoTypeInformation | Out-File ".\archives\$($timestamp)_users_ad_structure.csv"
+Get-ADUser -Filter * -Properties DisplayName,givenName,Surname,EmployeeNumber,EmployeeID,SamAccountName,UserPrincipalName,EmailAddress,DistinguishedName,Enabled,Fax,HomePhone,Office,ObjectGUID,objectSid,HomeDirectory,ScriptPath | ConvertTo-Csv -UseQuotes AsNeeded -NoTypeInformation | Out-File ".\archives\$($timestamp)_users_ad_structure.csv"
 
 #Backup Groups and Memberships
 $groupmemberships = @()
